@@ -151,14 +151,14 @@
     "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
     "title": "Hands-on Exercise 2",
     "section": "",
-    "text": "pacman::p_load(ggrepel,patchwork, ggthemes,hrbrthemes, tidyverse)\n\nInstalling package into 'C:/Users/shihh/AppData/Local/R/win-library/4.5'\n(as 'lib' is unspecified)\n\n\nWarning: package 'hrbrthemes' is not available for this version of R\n\nA version of this package for your version of R might be available elsewhere,\nsee the ideas at\nhttps://cran.r-project.org/doc/manuals/r-patched/R-admin.html#Installing-packages\n\n\nWarning: unable to access index for repository http://www.stats.ox.ac.uk/pub/RWin/bin/windows/contrib/4.5:\n  cannot open URL 'http://www.stats.ox.ac.uk/pub/RWin/bin/windows/contrib/4.5/PACKAGES'\n\n\nWarning: 'BiocManager' not available.  Could not check Bioconductor.\n\nPlease use `install.packages('BiocManager')` and then retry.\n\n\nWarning in p_install(package, character.only = TRUE, ...):\n\n\nWarning in library(package, lib.loc = lib.loc, character.only = TRUE,\nlogical.return = TRUE, : there is no package called 'hrbrthemes'\n\n\nWarning in pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse): Failed to install/load:\nhrbrthemes\n\n\n\n\n\n\nexam_data &lt;- read_csv(\"data/Exam_data.csv\")\n\nRows: 322 Columns: 7\n── Column specification ────────────────────────────────────────────────────────\nDelimiter: \",\"\nchr (4): ID, CLASS, GENDER, RACE\ndbl (3): ENGLISH, MATHS, SCIENCE\n\nℹ Use `spec()` to retrieve the full column specification for this data.\nℹ Specify the column types or set `show_col_types = FALSE` to quiet this message."
+    "text": "pacman::p_load(ggrepel,patchwork, ggthemes,hrbrthemes, tidyverse)\n\nAlready remote install hrbrthemes, hide it with ‘{r incluse=False}’.\n\n\n\n\nexam_data &lt;- read_csv(\"data/Exam_data.csv\")\n\nRows: 322 Columns: 7\n── Column specification ────────────────────────────────────────────────────────\nDelimiter: \",\"\nchr (4): ID, CLASS, GENDER, RACE\ndbl (3): ENGLISH, MATHS, SCIENCE\n\nℹ Use `spec()` to retrieve the full column specification for this data.\nℹ Specify the column types or set `show_col_types = FALSE` to quiet this message."
   },
   {
     "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#installing-and-loading-the-required-libraries",
     "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#installing-and-loading-the-required-libraries",
     "title": "Hands-on Exercise 2",
     "section": "",
-    "text": "pacman::p_load(ggrepel,patchwork, ggthemes,hrbrthemes, tidyverse)\n\nInstalling package into 'C:/Users/shihh/AppData/Local/R/win-library/4.5'\n(as 'lib' is unspecified)\n\n\nWarning: package 'hrbrthemes' is not available for this version of R\n\nA version of this package for your version of R might be available elsewhere,\nsee the ideas at\nhttps://cran.r-project.org/doc/manuals/r-patched/R-admin.html#Installing-packages\n\n\nWarning: unable to access index for repository http://www.stats.ox.ac.uk/pub/RWin/bin/windows/contrib/4.5:\n  cannot open URL 'http://www.stats.ox.ac.uk/pub/RWin/bin/windows/contrib/4.5/PACKAGES'\n\n\nWarning: 'BiocManager' not available.  Could not check Bioconductor.\n\nPlease use `install.packages('BiocManager')` and then retry.\n\n\nWarning in p_install(package, character.only = TRUE, ...):\n\n\nWarning in library(package, lib.loc = lib.loc, character.only = TRUE,\nlogical.return = TRUE, : there is no package called 'hrbrthemes'\n\n\nWarning in pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse): Failed to install/load:\nhrbrthemes"
+    "text": "pacman::p_load(ggrepel,patchwork, ggthemes,hrbrthemes, tidyverse)\n\nAlready remote install hrbrthemes, hide it with ‘{r incluse=False}’."
   },
   {
     "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
@@ -166,5 +166,26 @@
     "title": "Hands-on Exercise 2",
     "section": "",
     "text": "exam_data &lt;- read_csv(\"data/Exam_data.csv\")\n\nRows: 322 Columns: 7\n── Column specification ────────────────────────────────────────────────────────\nDelimiter: \",\"\nchr (4): ID, CLASS, GENDER, RACE\ndbl (3): ENGLISH, MATHS, SCIENCE\n\nℹ Use `spec()` to retrieve the full column specification for this data.\nℹ Specify the column types or set `show_col_types = FALSE` to quiet this message."
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
+    "title": "Hands-on Exercise 2",
+    "section": "2.3.1 Working with ggrepel",
+    "text": "2.3.1 Working with ggrepel\n\nggplot(data=exam_data, \n       aes(x= MATHS, \n           y=ENGLISH)) +\n  geom_point() +\n  geom_smooth(method=lm, \n              size=0.5) +  \n  geom_label_repel(aes(label = ID), \n                   fontface = \"bold\") +\n  coord_cartesian(xlim=c(0,100),\n                  ylim=c(0,100)) +\n  ggtitle(\"English scores versus Maths scores for Primary 3\")\n\nWarning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.\nℹ Please use `linewidth` instead.\n\n\n`geom_smooth()` using formula = 'y ~ x'\n\n\nWarning: ggrepel: 317 unlabeled data points (too many overlaps). Consider\nincreasing max.overlaps\n\n\n\n\n\n\n\n\n\nmemo: using ‘geom_label_rebel’ prevent overlapping labels"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
+    "title": "Hands-on Exercise 2",
+    "section": "2.4.1 Working with ggtheme package",
+    "text": "2.4.1 Working with ggtheme package\n\nggplot(data = exam_data,        # 使用 exam_data 作為資料來源\n       aes(x = MATHS)) +        # 指定 X 軸為數學成績\n  geom_histogram(bins = 20,     # 將數學成績分成 20 個區間\n                 boundary = 100, # 以 100 作為直方圖的分箱邊界\n                 color = \"grey25\", # 長條圖邊框顏色（深灰）\n                 fill = \"grey90\") + # 長條圖填滿顏色（淺灰）\n  ggtitle(\"Distribution of Maths scores\") + # 圖表標題\n  theme_economist()             # 套用 Economist 風格主題（來自 ggthemes）"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthems-package",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthems-package",
+    "title": "Hands-on Exercise 2",
+    "section": "2.4.2 Working with hrbthems package",
+    "text": "2.4.2 Working with hrbthems package\n\nggplot(data = exam_data,        # 使用 exam_data 作為資料來源\n       aes(x = MATHS)) +        # 指定 X 軸為數學成績\n  geom_histogram(bins = 20,     # 將數學成績分成 20 個區間\n                 boundary = 100, # 以 100 作為分箱的邊界（符合成績上限）\n                 color = \"grey25\", # 直方圖邊框顏色（深灰）\n                 fill = \"grey90\") + # 直方圖填滿顏色（淺灰）\n  ggtitle(\"Distribution of Maths scores\") + # 設定圖表標題\n  theme_ipsum()                # 套用 hrbrthemes 的 ipsum 主題（簡潔、無多餘格線）\n\n\n\n\n\n\n\n\nmemo: font issue still can’t solve, so setting warning=FALSE to avoid messing interface\n\nggplot(data = exam_data,            # 使用 exam_data 作為資料來源\n       aes(x = MATHS)) +            # 指定 X 軸為數學成績\n  geom_histogram(bins = 20,         # 將數學成績分成 20 個區間\n                 boundary = 100,    # 以 100 作為分箱邊界（符合成績上限）\n                 color = \"grey25\",  # 直方圖邊框顏色（深灰）\n                 fill = \"grey90\") + # 直方圖填滿顏色（淺灰）\n  ggtitle(\"Distribution of Maths scores\") + # 設定圖表標題\n  theme_ipsum(axis_title_size = 18, # 設定座標軸標題字體大小\n              base_size = 15,       # 設定整體字體的基準大小\n              grid = \"Y\")           # 僅顯示 Y 軸格線，提升讀值可讀性\n\nWarning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family\nnot found in Windows font database\n\n\nWarning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font\nfamily not found in Windows font database\nWarning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font\nfamily not found in Windows font database\nWarning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font\nfamily not found in Windows font database\n\n\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nfont family not found in Windows font database\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nfont family not found in Windows font database\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nfont family not found in Windows font database\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nfont family not found in Windows font database"
   }
 ]
