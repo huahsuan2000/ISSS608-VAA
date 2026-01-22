@@ -1,0 +1,17 @@
+---
+title: "Hands-on Exercise 2"
+author: "SHIH, HUA-HSUAN"
+---
+
+# 2.2 Getting Started
+
+## 2.2.1 Installing and loading the required libraries
+
+```{r}
+pacman::p_load(ggrepel,patchwork, ggthemes,hrbrthemes, tidyverse)
+```
+
+## 2.2.2 Importing data
+```{r}
+exam_data <- read_csv("data/Exam_data.csv")
+```
