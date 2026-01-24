@@ -7,13 +7,6 @@
     "text": "Welcome to ISSS608 Visual Analytics and Applications. In this website, you will find my coursework prepared for this course."
   },
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
-    "section": "",
-    "text": "About this site\n\n1 + 1\n\n[1] 2"
-  },
-  {
     "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html",
     "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html",
     "title": "Hands-on Exercise 1",
@@ -147,6 +140,13 @@
     "text": "1.11.1 Working with theme 修改底色\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_gray()\n\n\n\n\n\n\n\n\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_classic()\n\n\n\n\n\n\n\n\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_minimal()"
   },
   {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site\n\n1 + 1\n\n[1] 2"
+  },
+  {
     "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
     "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
     "title": "Hands-on Exercise 2",
@@ -186,6 +186,6 @@
     "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthems-package",
     "title": "Hands-on Exercise 2",
     "section": "2.4.2 Working with hrbthems package",
-    "text": "2.4.2 Working with hrbthems package\n\nggplot(data = exam_data,        # 使用 exam_data 作為資料來源\n       aes(x = MATHS)) +        # 指定 X 軸為數學成績\n  geom_histogram(bins = 20,     # 將數學成績分成 20 個區間\n                 boundary = 100, # 以 100 作為分箱的邊界（符合成績上限）\n                 color = \"grey25\", # 直方圖邊框顏色（深灰）\n                 fill = \"grey90\") + # 直方圖填滿顏色（淺灰）\n  ggtitle(\"Distribution of Maths scores\") + # 設定圖表標題\n  theme_ipsum()                # 套用 hrbrthemes 的 ipsum 主題（簡潔、無多餘格線）\n\n\n\n\n\n\n\n\nmemo: font issue still can’t solve, so setting warning=FALSE to avoid messing interface\n\nggplot(data = exam_data,            # 使用 exam_data 作為資料來源\n       aes(x = MATHS)) +            # 指定 X 軸為數學成績\n  geom_histogram(bins = 20,         # 將數學成績分成 20 個區間\n                 boundary = 100,    # 以 100 作為分箱邊界（符合成績上限）\n                 color = \"grey25\",  # 直方圖邊框顏色（深灰）\n                 fill = \"grey90\") + # 直方圖填滿顏色（淺灰）\n  ggtitle(\"Distribution of Maths scores\") + # 設定圖表標題\n  theme_ipsum(axis_title_size = 18, # 設定座標軸標題字體大小\n              base_size = 15,       # 設定整體字體的基準大小\n              grid = \"Y\")           # 僅顯示 Y 軸格線，提升讀值可讀性\n\nWarning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family\nnot found in Windows font database\n\n\nWarning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font\nfamily not found in Windows font database\nWarning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font\nfamily not found in Windows font database\nWarning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font\nfamily not found in Windows font database\n\n\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nfont family not found in Windows font database\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nfont family not found in Windows font database\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nfont family not found in Windows font database\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nfont family not found in Windows font database"
+    "text": "2.4.2 Working with hrbthems package\n\nggplot(data = exam_data,        # 使用 exam_data 作為資料來源\n       aes(x = MATHS)) +        # 指定 X 軸為數學成績\n  geom_histogram(bins = 20,     # 將數學成績分成 20 個區間\n                 boundary = 100, # 以 100 作為分箱的邊界（符合成績上限）\n                 color = \"grey25\", # 直方圖邊框顏色（深灰）\n                 fill = \"grey90\") + # 直方圖填滿顏色（淺灰）\n  ggtitle(\"Distribution of Maths scores\") + # 設定圖表標題\n  theme_ipsum()                # 套用 hrbrthemes 的 ipsum 主題（簡潔、無多餘格線）\n\n\n\n\n\n\n\n\nmemo: font issue still can’t solve, so setting warning=FALSE to avoid messing interface\n\nggplot(data = exam_data,            # 使用 exam_data 作為資料來源\n       aes(x = MATHS)) +            # 指定 X 軸為數學成績\n  geom_histogram(bins = 20,         # 將數學成績分成 20 個區間\n                 boundary = 100,    # 以 100 作為分箱邊界（符合成績上限）\n                 color = \"grey25\",  # 直方圖邊框顏色（深灰）\n                 fill = \"grey90\") + # 直方圖填滿顏色（淺灰）\n  ggtitle(\"Distribution of Maths scores\") + # 設定圖表標題\n  theme_ipsum(axis_title_size = 18, # 設定座標軸標題字體大小\n              base_size = 15,       # 設定整體字體的基準大小\n              grid = \"Y\")           # 僅顯示 Y 軸格線，提升讀值可讀性\n\nWarning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): Windows\n字型資料庫裡不明的字型系列\n\n\nWarning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, :\nWindows 字型資料庫裡不明的字型系列\nWarning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, :\nWindows 字型資料庫裡不明的字型系列\nWarning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, :\nWindows 字型資料庫裡不明的字型系列\n\n\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nWindows 字型資料庫裡不明的字型系列\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nWindows 字型資料庫裡不明的字型系列\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nWindows 字型資料庫裡不明的字型系列\nWarning in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y, :\nWindows 字型資料庫裡不明的字型系列"
   }
 ]
