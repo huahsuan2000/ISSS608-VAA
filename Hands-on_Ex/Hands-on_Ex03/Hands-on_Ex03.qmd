@@ -2,3 +2,450 @@
 title: "Hands-on Exercise 3"
 author: "SHIH, HUA-HSUAN"
 ---
+
+# 3 Programming Interactive Data Visualisation with R
+
+## 3.2 Getting Started
+
+```{r}
+pacman::p_load(ggiraph, plotly, patchwork, DT, tidyverse) 
+```
+
+## 3.3 Importing Data
+
+```{r}
+exam_data <- read_csv("data/Exam_data.csv")
+```
+
+## 3.4 Interactive Data Visualisation - ggiraph methods
+
+### 3.4.1 Tooltip effect with tooltip aesthetic
+
+```{r}
+p <- ggplot(data = exam_data,        # 使用考試資料
+            aes(x = MATHS)) +        # X 軸為數學成績
+  geom_dotplot_interactive(          # 繪製可互動的點狀分布圖
+    aes(tooltip = ID),               # 滑鼠移到點上時顯示學生 ID
+    stackgroups = TRUE,              # 將同一分組內的點進行堆疊
+    binwidth = 1,                    # 每 1 分為一個分箱區間
+    method = "histodot") +           # 使用直方圖式的點狀堆疊方法
+  scale_y_continuous(NULL,           # 不顯示 Y 軸標題
+                     breaks = NULL)  # 不顯示 Y 軸刻度
+
+girafe(
+  ggobj = p,                         # 指定要轉為互動圖的 ggplot 物件
+  width_svg = 6,                     # 設定輸出圖形寬度
+  height_svg = 6 * 0.618             # 設定輸出圖形高度
+)
+```
+
+## 3.5 Interactivity 互動性
+
+將滑鼠移到datapoint會出現student id \## 3.5.1 Displaying multiple information on tooltip
+
+```{r}
+exam_data$tooltip <- c(paste0(        # 新增一個欄位 tooltip，用來放滑鼠提示文字
+  "Name = ", exam_data$ID,            # 第一行顯示 ID（你這裡 label 寫 Name，但實際放的是 ID）
+  "\n Class = ", exam_data$CLASS))    # 換行後顯示 CLASS（\n 代表換行）；c() 這裡其實可省略
+
+p <- ggplot(data = exam_data,         # 指定資料來源為 exam_data
+            aes(x = MATHS)) +         # 設定 x 軸使用數學成績 MATHS
+  geom_dotplot_interactive(           # 畫「可互動」的 dotplot（點狀直方圖）
+    aes(tooltip = exam_data$tooltip), # 滑鼠移到點上顯示 tooltip 欄位內容（建議寫 tooltip 而不是 exam_data$tooltip）
+    stackgroups = TRUE,               # 同一個分箱內的點會往上堆疊
+    binwidth = 1,                     # 每 1 分作為一個分箱區間
+    method = "histodot") +            # 用直方圖式的方式分箱並堆疊點
+  scale_y_continuous(NULL,            # 不顯示 y 軸標題
+                     breaks = NULL)   # 不顯示 y 軸刻度（dotplot 的 y 只是堆疊高度，用不到）
+
+girafe(                               # 將 ggplot 物件轉成可互動的 html widget
+  ggobj = p,                          # 指定要互動化的圖是 p
+  width_svg = 8,                      # 輸出 SVG 的寬度
+  height_svg = 8 * 0.618              # 輸出 SVG 的高度（用黃金比例設定視覺比例）
+)
+```
+
+## 3.6 Interactivity
+
+將滑鼠移到點上，出現student ID 及 Class
+
+### 3.6.1 Customising Tooltip style
+
+```{r}
+tooltip_css <- "background-color:white; #<<      # 建立一段 CSS 字串，用來自訂 tooltip（提示框）的外觀
+font-style:bold; color:black;" #<<             # 設定字體樣式與文字顏色；注意：bold 通常應該用 font-weight:bold
+
+p <- ggplot(data = exam_data,                 # 指定資料來源為 exam_data
+            aes(x = MATHS)) +                 # X 軸為數學成績 MATHS
+  geom_dotplot_interactive(                   # 繪製可互動的 dotplot（點狀直方圖）
+    aes(tooltip = ID),                        # 滑鼠移到點上時顯示 ID 作為 tooltip 內容
+    stackgroups = TRUE,                       # 同一個分箱中的點會往上堆疊
+    binwidth = 1,                             # 每 1 分為一個分箱（bin）
+    method = "histodot") +                    # 使用 histodot 方法：先分箱再用點堆疊出分布
+  scale_y_continuous(NULL,                    # 不顯示 Y 軸標題
+                     breaks = NULL)           # 不顯示 Y 軸刻度（y 只是堆疊高度用）
+
+girafe(                                       # 將 ggplot 物件轉成可互動的 html widget
+  ggobj = p,                                  # 指定要互動化的 ggplot 物件為 p
+  width_svg = 6,                              # 設定輸出 SVG 的寬度
+  height_svg = 6 * 0.618,                     # 設定輸出 SVG 的高度（黃金比例）
+  options = list( #<<                         # 設定 girafe 的互動選項（以 list 傳入多個 opts_*）
+    opts_tooltip( #<<                         # 設定 tooltip（滑鼠提示框）的顯示方式
+      css = tooltip_css)) #<<                 # 套用上面自訂的 CSS 字串到 tooltip
+)                                             # 結束 girafe 呼叫
+```
+
+### 3.6.2 Displaying statistics on tooltip
+
+```{r}
+tooltip <- function(y, ymax, accuracy = .01) {
+  mean <- scales::number(y, accuracy = accuracy)
+  sem <- scales::number(ymax - y, accuracy = accuracy)
+  paste("Mean maths scores:", mean, "+/-", sem)
+}
+
+gg_point <- ggplot(data=exam_data, 
+                   aes(x = RACE),
+) +
+  stat_summary(aes(y = MATHS, 
+                   tooltip = after_stat(  
+                     tooltip(y, ymax))),  
+    fun.data = "mean_se", 
+    geom = GeomInteractiveCol,  
+    fill = "light blue"
+  ) +
+  stat_summary(aes(y = MATHS),
+    fun.data = mean_se,
+    geom = "errorbar", width = 0.2, size = 0.2
+  )
+
+girafe(ggobj = gg_point,
+       width_svg = 8,
+       height_svg = 8*0.618)
+```
+
+### 3.6.3 Hover effect with data_id aesthetic
+
+```{r}
+p <- ggplot(data=exam_data, 
+       aes(x = MATHS)) +
+  geom_dotplot_interactive(           
+    aes(data_id = CLASS),             
+    stackgroups = TRUE,               
+    binwidth = 1,                        
+    method = "histodot") +               
+  scale_y_continuous(NULL,               
+                     breaks = NULL)
+girafe(                                  
+  ggobj = p,                             
+  width_svg = 6,                         
+  height_svg = 6*0.618                      
+)                                        
+```
+
+### 3.6.4 Styling hover effect
+
+將highlight效果修改
+
+```{r}
+p <- ggplot(data=exam_data, 
+       aes(x = MATHS)) +
+  geom_dotplot_interactive(              
+    aes(data_id = CLASS),              
+    stackgroups = TRUE,                  
+    binwidth = 1,                        
+    method = "histodot") +               
+  scale_y_continuous(NULL,               
+                     breaks = NULL)
+girafe(                                  
+  ggobj = p,                             
+  width_svg = 6,                         
+  height_svg = 6*0.618,
+  options = list(                        
+    opts_hover(css = "fill: #202020;"),  
+    opts_hover_inv(css = "opacity:0.2;") 
+  )                                        
+)                                        
+```
+
+### 3.6.5 Combining tooltip and hover effect
+
+highlight效果修改並且呈現資料
+
+```{r}
+p <- ggplot(data=exam_data, 
+       aes(x = MATHS)) +
+  geom_dotplot_interactive(              
+    aes(tooltip = CLASS, 
+        data_id = CLASS),              
+    stackgroups = TRUE,                  
+    binwidth = 1,                        
+    method = "histodot") +               
+  scale_y_continuous(NULL,               
+                     breaks = NULL)
+girafe(                                  
+  ggobj = p,                             
+  width_svg = 6,                         
+  height_svg = 6*0.618,
+  options = list(                        
+    opts_hover(css = "fill: #202020;"),  
+    opts_hover_inv(css = "opacity:0.2;") 
+  )                                        
+)                                        
+```
+
+### 3.6.6 Click effect with onclick
+
+點擊後連結到外部網站
+
+```{r}
+exam_data$onclick <- sprintf("window.open(\"%s%s\")",
+"https://www.moe.gov.sg/schoolfinder?journey=Primary%20school",
+as.character(exam_data$ID))
+
+p <- ggplot(data=exam_data, 
+       aes(x = MATHS)) +
+  geom_dotplot_interactive(              
+    aes(onclick = onclick),              
+    stackgroups = TRUE,                  
+    binwidth = 1,                        
+    method = "histodot") +               
+  scale_y_continuous(NULL,               
+                     breaks = NULL)
+girafe(                                  
+  ggobj = p,                             
+  width_svg = 6,                         
+  height_svg = 6*0.618)                                 
+```
+
+### 3.6.7 Coordinated Multiple Views with ggiraph
+
+組合多張圖表。滑鼠hover到左圖的一個點時，右圖也會出現對應的表
+
+```{r}
+p1 <- ggplot(data=exam_data, 
+       aes(x = MATHS)) +
+  geom_dotplot_interactive(              
+    aes(data_id = ID),              
+    stackgroups = TRUE,                  
+    binwidth = 1,                        
+    method = "histodot") +  
+  coord_cartesian(xlim=c(0,100)) + 
+  scale_y_continuous(NULL,               
+                     breaks = NULL)
+
+p2 <- ggplot(data=exam_data, 
+       aes(x = ENGLISH)) +
+  geom_dotplot_interactive(              
+    aes(data_id = ID),              
+    stackgroups = TRUE,                  
+    binwidth = 1,                        
+    method = "histodot") + 
+  coord_cartesian(xlim=c(0,100)) + 
+  scale_y_continuous(NULL,               
+                     breaks = NULL)
+
+girafe(code = print(p1 + p2), 
+       width_svg = 6,
+       height_svg = 3,
+       options = list(
+         opts_hover(css = "fill: #202020;"),
+         opts_hover_inv(css = "opacity:0.2;")
+         )
+       ) 
+```
+
+## 3.7 Interactive Data Visualisation - plotly methods!
+
+##3.7.1 Creating an interactive scatter plot: plot_ly() method
+
+```{r}
+plot_ly(data = exam_data, 
+             x = ~MATHS, 
+             y = ~ENGLISH)
+```
+
+### 3.7.2 Working with visual variable: plot_ly() method
+
+依照種族進行顏色分類
+
+```{r}
+plot_ly(data = exam_data, 
+        x = ~ENGLISH, 
+        y = ~MATHS, 
+        color = ~RACE)
+```
+
+### 3.7.3 Creating an interactive scatter plot: ggplotly() method
+
+```{r}
+p <- ggplot(data=exam_data, 
+            aes(x = MATHS,
+                y = ENGLISH)) +
+  geom_point(size=1) +
+  coord_cartesian(xlim=c(0,100),
+                  ylim=c(0,100))
+ggplotly(p)
+```
+
+### 3.7.4 Coordinated Multiple Views with plotly
+
+```{r}
+d <- highlight_key(exam_data)
+p1 <- ggplot(data=d, 
+            aes(x = MATHS,
+                y = ENGLISH)) +
+  geom_point(size=1) +
+  coord_cartesian(xlim=c(0,100),
+                  ylim=c(0,100))
+
+p2 <- ggplot(data=d, 
+            aes(x = MATHS,
+                y = SCIENCE)) +
+  geom_point(size=1) +
+  coord_cartesian(xlim=c(0,100),
+                  ylim=c(0,100))
+subplot(ggplotly(p1),
+        ggplotly(p2))
+```
+
+## 3.8 Interactive Data Visualisation - crosstalk methods
+
+### 3.8.1 Interactive Data Table: DT package
+
+```{r}
+DT::datatable(exam_data, class= "compact")
+```
+
+### 3.8.2 Linked brushing: crosstalk method
+
+```{r}
+d <- highlight_key(exam_data) 
+p <- ggplot(d, 
+            aes(ENGLISH, 
+                MATHS)) + 
+  geom_point(size=1) +
+  coord_cartesian(xlim=c(0,100),
+                  ylim=c(0,100))
+
+gg <- highlight(ggplotly(p),        
+                "plotly_selected")  
+
+crosstalk::bscols(gg,               
+                  DT::datatable(d), 
+                  widths = 5)        
+```
+
+# 4 Programming Animated Statistical Graphics with R
+
+## 4.2 Getting Started
+
+### 4.2.1 Loading the R packages
+
+```{r}
+pacman::p_load(readxl, gifski, gapminder, plotly, gganimate, tidyverse)
+```
+
+### 4.2.2 Importing the data
+
+```{r}
+col <- c("Country", "Continent")
+globalPop <- read_xls("data/GlobalPopulation.xls",
+                      sheet="Data") %>%
+  mutate_at(col, as.factor) %>%
+  mutate(Year = as.integer(Year))
+```
+
+## 4.3 Animated Data Visualisation: gganimate methods
+
+### 4.3.1 Building a static population bubble plot
+
+```{r}
+ggplot(globalPop, aes(x = Old, y = Young, 
+                      size = Population, 
+                      colour = Country)) +
+  geom_point(alpha = 0.7, 
+             show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  labs(title = 'Year: {frame_time}', 
+       x = '% Aged', 
+       y = '% Young') 
+```
+
+### 4.3.2 Building the animated bubble plot
+
+```{r}
+ggplot(globalPop, aes(x = Old, y = Young, 
+                      size = Population, 
+                      colour = Country)) +
+  geom_point(alpha = 0.7, 
+             show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  labs(title = 'Year: {frame_time}', 
+       x = '% Aged', 
+       y = '% Young') +
+  transition_time(Year) +       
+  ease_aes('linear')          
+```
+
+## 4.4 Animated Data Visualisation: plotly
+
+### 4.4.1 Building an animated bubble plot: ggplotly() method
+
+```{r}
+gg <- ggplot(globalPop, 
+       aes(x = Old, 
+           y = Young, 
+           size = Population, 
+           colour = Country)) +
+  geom_point(aes(size = Population,
+                 frame = Year),
+             alpha = 0.7, 
+             show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  labs(x = '% Aged', 
+       y = '% Young')
+
+ggplotly(gg)
+```
+
+```{r}
+gg <- ggplot(globalPop, 
+       aes(x = Old, 
+           y = Young, 
+           size = Population, 
+           colour = Country)) +
+  geom_point(aes(size = Population,
+                 frame = Year),
+             alpha = 0.7) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  labs(x = '% Aged', 
+       y = '% Young') + 
+  theme(legend.position='none')
+
+ggplotly(gg)
+```
+
+### 4.4.2 Building an animated bubble plot: plot_ly() method
+
+```{r warning=FALSE}
+bp <- globalPop %>%
+  plot_ly(x = ~Old, 
+          y = ~Young, 
+          size = ~Population, 
+          color = ~Continent,
+          sizes = c(2, 100),
+          frame = ~Year, 
+          text = ~Country, 
+          hoverinfo = "text",
+          type = 'scatter',
+          mode = 'markers'
+          ) %>%
+  layout(showlegend = FALSE)
+bp
+```
+
