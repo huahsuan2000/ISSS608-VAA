@@ -15,6 +15,12 @@ website:
           href: "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03.html"
         - text: "Hands-on Exercise 4"
           href: "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04.html"
+        - text: "Hands-on Exercise 5"
+          href: "Hands-on_Ex/Hands-on_Ex05/Hands-on_Ex05.html"
+      - text: "Take-home Exercise"
+        menu:
+        - text: "Take-home Exercise 1"
+          href: "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html"
     right: 
       - href: index.qmd
         text: Home
@@ -22,9 +28,10 @@ website:
 
 format:
   html:
-    theme: morph
+    theme: flatly
     css: styles.css
     toc: true
 
 editor: visual
+
 

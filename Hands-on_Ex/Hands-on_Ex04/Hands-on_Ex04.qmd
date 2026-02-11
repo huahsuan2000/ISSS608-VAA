@@ -601,7 +601,7 @@ devtools::install_github("wilkelab/ungeviz")
 library(ungeviz)
 ```
 
-### 11.5.3 Visualising Uncertainty with Hypothetical Outcome Plots (HOPs)
+## 11.5.3 Visualising Uncertainty with Hypothetical Outcome Plots (HOPs)
 
 ```{r}
 ggplot(data = exam, 

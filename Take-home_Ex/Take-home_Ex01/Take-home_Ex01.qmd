@@ -1,0 +1,567 @@
+---
+title: "Take-home Exercise 1"
+author: "SHIH, HUA-HSUAN"
+---
+
+# Overview
+
+## Setting the scene
+
+Understanding the factors that influence students’ learning outcomes is a key concern in higher education. This dataset focuses on students from Vietnam National University in 2023 and is based on 2,170 completed survey responses covering 22 variables. The survey structure mainly includes three aspects: students’ background characteristics, their daily behavioral patterns, and their perceptions of the resources and support provided by the university. This study examines how these three dimensions are associated with students’ GPA performance.
+
+## Problem Statement
+
+In this exercise, Exploratory Data Analysis (EDA) methods and ggplot functions and hypothesis tests are used to explore the following questions:
+
+-   How does students’ time allocation influence their learning outcomes?
+
+-   Is there a relationship between students’ family and socioeconomic background and their academic performance?
+
+-   Do university resources, such as curriculum design and lecturer quality, have an impact on students’ academic performance?
+
+# Getting Started
+
+## Load Package
+
+We load the following R packages using the `pacman::p_load()` function:
+
+-   tidyverse: Core collection of R packages designed for data science
+
+-   haven: To read in data formats such as SAS and SPSS
+
+-   ggrepel: to provides geoms for ggplot2 to repel overlapping text labels
+
+-   ggthemes: to use additional themes for ggplot2
+
+-   patchwork: to prepare composite figure created using ggplot2
+
+-   ggridges: to plot ridgeline plots
+
+-   ggdist: for visualizations of distributions and uncertainty
+
+-   scales: provides the internal scaling infrastructure used by ggplot2
+
+-   readxl: provides functions to read Excel files (.xls and .xlsx) into R
+
+-   plotly: R library for plotting interactive statistical graphs.
+
+-   ggstatsplot: an R package for creating statistical graphics with embedded inferential statistics
+
+```{r}
+pacman::p_load(tidyverse, haven,
+               ggrepel, ggthemes,
+               ggridges, ggdist,
+               patchwork, scales,
+               readxl, plotly, 
+               ggstatsplot)
+```
+
+## Import Data
+
+The dataset used in this exercise is questionnaire data collected from students at Vietnam National University and retrieved from [Mendeley Data](https://data.mendeley.com/datasets/23ppcdbmhc/1). The dataset is imported into R and named `stu_data`.
+
+```{r}
+stu_data <- read_excel("data/Database paper.xlsx")
+```
+
+## Data Pre-processing
+
+We first perform an overview of the dataset to assess whether any data adjustments are required.
+
+```{r}
+glimpse(stu_data)
+```
+
+::: {.callout-note title="Insight"}
+All variables in the dataset are currently stored as `<dbl>` (double) types. However, the data mainly consists of categorical variables, including binary, ordinal, and nominal responses. In the subsequent analysis, variables will be recoded and relabeled as needed to better reflect their categorical meanings during visualization.
+:::
+
+### Check for duplicates
+
+Duplicate removal is not performed in this exercise, as the questionnaire-based data does not include a unique identifier (e.g., student ID). Identical response patterns may reflect different students with similar characteristics rather than true duplicate entries. As such, all observations are retained for analysis.
+
+### Check and Handle Missing Values
+
+A check for missing values shows that no variables contain NA values. Therefore, no additional missing value handling is required.
+
+```{r}
+for(column_name in names(stu_data)) {
+  na_count <- sum(is.na(stu_data[[column_name]]))
+
+  if (na_count > 0) {
+    message("Column '", column_name, "' has ", na_count, " NA values.")
+  }
+}
+```
+
+### Filtering data for selected variables
+
+Next, we want to reduce the size of the dataset to focus on the variables that would be suitable for this exercise. Primarily referred to the CODEBOOK file on [Mendeley Data](https://data.mendeley.com/datasets/23ppcdbmhc/1).
+
+The primary columns/variables that will be used in this exercise are:
+
+```{r,  echo=FALSE}
+var_tbl <- tibble::tribble(
+  ~`Variable Name`, ~Description, ~`Type of Variable`,
+  "GPA",
+  "(Target Variable) Cumulative grade point average (GPA)<br>
+  1: Under 2.0 – Poor<br>
+  2: From 2.0 to lower 2.5 – Average<br>
+  3: From 2.5 to lower 3.2 – Fair<br>
+  4: From 3.2 to lower 3.6 – Good<br>
+  5: Over 3.6 – Excellent",
+  "Ordinal",
+  
+  "Time_Friends",
+  "(Time allocation) Daily time spent hanging out with friends<br>
+  1: under 1 hour<br>
+  2: from 1 to lower 2 hours<br>
+  3: from 2 to lower 3 hours<br>
+  4: from 3 to lower 4 hours<br>
+  5: over 4 hours",
+  "Ordinal",
+  
+  "Time_SocicalMedia",
+  "(Time allocation) Daily time spent using social media<br>
+  1: under 1 hour<br>
+  2: from 1 to lower 2 hours<br>
+  3: from 2 to lower 3 hours<br>
+  4: from 3 to lower 4 hours<br>
+  5: over 4 hours",
+  "Ordinal",
+  
+  "Time_Studying",
+  "(Time allocation) Daily time spent studying<br>
+  1: under 2 hours<br>
+  2: from 2 to lower 4 hours<br>
+  3: from 4 to lower 6 hours<br>
+  4: from 6 to lower 8 hours<br>
+  5: over 8 hours",
+  "Ordinal",
+  
+  "Poor_Stu",
+  "(Socioeconomic background) Family economic status<br>
+  1: Yes – poor household<br>
+  2: No – not a poor household",
+  "Binary",
+  
+  "Father_Edu",
+  "(Socioeconomic background) Father’s educational background<br>
+  1: Primary school<br>
+  2: Secondary school<br>
+  3: High school<br>
+  4: College school<br>
+  5: University/graduate education<br>
+  6: Other",
+  "Ordinal",
+  
+  "Mother_Edu",
+  "(Socioeconomic background) Mother’s educational background<br>
+  1: Primary school<br>
+  2: Secondary school<br>
+  3: High school<br>
+  4: College school<br>
+  5: University/graduate education<br>
+  6: Other",
+  "Ordinal",
+  
+  "SupportOf_Lec",
+  "(Learning environment) Perceived level of lecturer support affecting learning outcomes<br>
+  1: Not at all<br>
+  2: Little<br>
+  3: Moderate<br>
+  4: Quite<br>
+  5: Very",
+  "Ordinal",
+  
+  "Quality_Lecturer",
+  "(Learning environment) Perceived quality of university lecturers<br>
+  1: Not at all<br>
+  2: Little<br>
+  3: Moderate<br>
+  4: Quite<br>
+  5: Very",
+  "Ordinal",
+  
+  "TrainingCurriculum",
+  "(Learning environment) Perceived suitability of the university curriculum<br>
+  1: Not at all<br>
+  2: Little<br>
+  3: Moderate<br>
+  4: Quite<br>
+  5: Very",
+  "Ordinal",
+)
+
+knitr::kable(var_tbl, format = "html", escape = FALSE)
+```
+
+We filter the dataset *stu_data* to retain only the variables relevant to this analysis and store the resulting data as *stu_data_filtered*.
+
+```{r}
+stu_data_filtered <- stu_data %>%
+  select(GPA, Time_Friends, Time_SocicalMedia, Time_Studying, Poor_Stu,
+         Father_Edu, Mother_Edu, SupportOf_Lec, Quality_Lecturer, TrainingCurriculum)
+```
+
+### Recode Variables
+
+-   **Binary Variables Processing**
+
+    **Poor_Stu** is originally stored as `<dbl>`, although it represents a nominal categorical variable. A value of 1 indicates a poor household and 2 indicates a non-poor household. The variable is therefore recoded, converted to `<chr>`.
+
+```{r}
+stu_data_filtered <- stu_data_filtered %>%
+  mutate(Poor_Stu = recode(as.character(Poor_Stu), '1' = 'Poor household', '2' = 'Not a poor household'))
+```
+
+-   **Ordinal Variables Processing**
+
+    The remaining variables are treated as ordinal categorical variables. Recoding and ordering are applied to preserve the meaningful sequence of response levels. For **Father_Edu** and **Mother_Edu**, the *“Other”* category is retained in the data but excluded from the ordinal ordering, as it does not correspond to a defined educational level.
+
+```{r}
+# GPA
+stu_data_filtered <- stu_data_filtered %>%
+  mutate(GPA = recode(as.character(GPA),
+                      '1' = "Poor",
+                      '2' = "Average",
+                      '3' = "Fair",
+                      '4' = "Good",
+                      '5' = "Excellent"))
+
+stu_data_filtered$GPA <- ordered(stu_data_filtered$GPA,
+  levels = c("Poor", "Average", "Fair", "Good", "Excellent"))
+
+# Time_Friends
+stu_data_filtered <- stu_data_filtered %>%
+  mutate(Time_Friends = recode(as.character(Time_Friends),
+                               '1' = "Under 1 hour",
+                               '2' = "1 to <2 hours",
+                               '3' = "2 to <3 hours",
+                               '4' = "3 to <4 hours",
+                               '5' = "Over 4 hours"))
+
+stu_data_filtered$Time_Friends <- ordered(stu_data_filtered$Time_Friends,
+  levels = c("Under 1 hour", "1 to <2 hours", "2 to <3 hours", "3 to <4 hours", "Over 4 hours"))
+
+# Time_SocicalMedia
+stu_data_filtered <- stu_data_filtered %>%
+  mutate(Time_SocicalMedia = recode(as.character(Time_SocicalMedia),
+                                    '1' = "Under 1 hour",
+                                    '2' = "1 to <2 hours",
+                                    '3' = "2 to <3 hours",
+                                    '4' = "3 to <4 hours",
+                                    '5' = "Over 4 hours"))
+
+stu_data_filtered$Time_SocicalMedia <- ordered(stu_data_filtered$Time_SocicalMedia,
+  levels = c("Under 1 hour", "1 to <2 hours",  "2 to <3 hours", "3 to <4 hours", "Over 4 hours"))
+
+# Time_Studying
+stu_data_filtered <- stu_data_filtered %>%
+  mutate(Time_Studying = recode(as.character(Time_Studying),
+                                '1' = "Under 2 hours",
+                                '2' = "2 to <4 hours",
+                                '3' = "4 to <6 hours",
+                                '4' = "6 to <8 hours",
+                                '5' = "Over 8 hours"))
+
+stu_data_filtered$Time_Studying <- ordered(stu_data_filtered$Time_Studying,
+  levels = c("Under 2 hours", "2 to <4 hours", "4 to <6 hours", "6 to <8 hours", "Over 8 hours"))
+
+# Father_Edu
+stu_data_filtered <- stu_data_filtered %>%
+  mutate(Father_Edu = recode(as.character(Father_Edu),
+                             '1' = "Primary school",
+                             '2' = "Secondary school",
+                             '3' = "High school",
+                             '4' = "College school",
+                             '5' = "University/graduate education",
+                             '6' = "Other"))
+
+stu_data_filtered$Father_Edu <- ordered(
+  stu_data_filtered$Father_Edu,
+  levels = c("Primary school", "Secondary school", "High school", "College school", "University/graduate education"))
+
+# Mother_Edu
+stu_data_filtered <- stu_data_filtered %>%
+  mutate(Mother_Edu = recode(as.character(Mother_Edu),
+                             '1' = "Primary school",
+                             '2' = "Secondary school",
+                             '3' = "High school",
+                             '4' = "College school",
+                             '5' = "University/graduate education",
+                             '6' = "Other"))
+
+stu_data_filtered$Mother_Edu <- ordered(stu_data_filtered$Mother_Edu,
+  levels = c("Primary school", "Secondary school", "High school", "College school", "University/graduate education"))
+
+# SupportOf_Lec
+stu_data_filtered <- stu_data_filtered %>%
+  mutate(SupportOf_Lec = recode(as.character(SupportOf_Lec),
+                                '1' = "Not at all",
+                                '2' = "Little",
+                                '3' = "Moderate",
+                                '4' = "Quite",
+                                '5' = "Very"))
+
+stu_data_filtered$SupportOf_Lec <- ordered(stu_data_filtered$SupportOf_Lec,
+  levels = c("Not at all", "Little", "Moderate", "Quite", "Very"))
+
+# Quality_Lecturer
+stu_data_filtered <- stu_data_filtered %>%
+  mutate(Quality_Lecturer = recode(as.character(Quality_Lecturer),
+                                   '1' = "Not at all",
+                                   '2' = "Little",
+                                   '3' = "Moderate",
+                                   '4' = "Quite",
+                                   '5' = "Very"))
+
+stu_data_filtered$Quality_Lecturer <- ordered(stu_data_filtered$Quality_Lecturer,
+  levels = c("Not at all", "Little", "Moderate", "Quite", "Very"))
+
+# TrainingCurriculum
+stu_data_filtered <- stu_data_filtered %>%
+  mutate(TrainingCurriculum = recode(as.character(TrainingCurriculum),
+                                     '1' = "Not at all",
+                                     '2' = "Little",
+                                     '3' = "Moderate",
+                                     '4' = "Quite",
+                                     '5' = "Very"))
+
+stu_data_filtered$TrainingCurriculum <- ordered(stu_data_filtered$TrainingCurriculum,
+  levels = c("Not at all", "Little", "Moderate", "Quite", "Very"))
+```
+
+### Preview pre-processed dataframe
+
+At this stage, all variables have been transformed into `<ord>` or `<chr>` types. All original numeric codes have been successfully recoded into descriptive categorical labels.
+
+```{r}
+glimpse(stu_data_filtered)
+head(stu_data_filtered, 200)
+```
+
+# \[Topic 1\] How does students’ time allocation influence their learning outcomes?
+
+## \[Observation 1\] Higher GPA Levels Are Concentrated Among Students with Longer Study Time
+
+::: panel-tabset
+## Plot
+
+```{r, echo=FALSE}
+ggbarstats(stu_data_filtered, 
+           x = Time_Studying,
+           y = GPA)+
+  labs(title = "GPA Performance by Daily Studying Time")
+```
+
+H₀ (Null Hypothesis) : There is no association between GPA and studying time.<br> H₁ (Alternative Hypothesis) : There is an association between GPA and studying time.
+
+## Code
+
+``` r
+ggbarstats(stu_data_filtered, 
+           x = Time_Studying,
+           y = GPA)+
+  labs(title = "GPA Performance between different time-studying group")
+```
+:::
+
+The chi-square test shows a statistically significant association between daily study time and GPA performance (p \< 0.001). From the distribution in the chart, students with higher GPA levels are more likely to report longer daily study durations. In particular, students achieving Fair, Good, and Excellent GPA categories are mainly concentrated in the group studying more than eight hours per day. This pattern is especially evident among top-performing students, where long study hours account for the majority of observations. Overall, the visualization suggests that **better academic performance is commonly observed among students who spend more time studying each day**.
+
+## \[Observation 2\] Students with Better GPA Performance Tend to Spend Less Time on Leisure Activities
+
+::: panel-tabset
+## Plot
+
+```{r, echo=FALSE}
+ggbarstats(stu_data_filtered, 
+           x = Time_Friends,
+           y = GPA)+
+     labs(title = "GPA Performance by Time Spent Socializing with Friends")
+ggbarstats(stu_data_filtered, 
+           x = Time_SocicalMedia, 
+           y = GPA,
+           xlab = "Time_SocialMedia")+
+  labs(title = "GPA Performance by Daily Social Media Usage")
+```
+
+H₀ (Null Hypothesis) : There is no association between GPA and leisure time.<br> H₁ (Alternative Hypothesis) : There is an association between GPA and leisure time.
+
+## Code
+
+``` r
+ggbarstats(stu_data_filtered, 
+           x = Time_Friends,
+           y = GPA)+
+     labs(title = "GPA Performance by Time Spent Socializing with Friends")
+ggbarstats(stu_data_filtered, 
+           x = Time_SocicalMedia, 
+           y = GPA,
+           xlab = "Time_SocialMedia")+
+  labs(title = "GPA Performance by Daily Social Media Usage")
+```
+:::
+
+The chi-square test results indicate a statistically significant association between leisure time allocation and GPA performance (p \< 0.001) for both time spent socializing with friends and daily social media usage. From the charts, students with better academic performance tend to spend less than two hours per day socializing with friends, and the proportion of students using social media for more than three hours per day decreases as GPA levels increase. This suggests that **students with higher GPA performance generally allocate less time to leisure activities**.
+
+::: {.callout-note title="Topic 1 Conclusion"}
+Overall, students’ time allocation is significantly associated with GPA performance, where longer study time is linked to higher GPA while greater leisure time is associated with lower GPA.<br> These results suggest that how students allocate time between studying and leisure plays an important role in academic outcomes.
+:::
+
+# \[Topic 2\] Is there a relationship between students’ family and socioeconomic background and their academic performance?
+
+## \[Observation 3\] Students from Poor Households Tend to Exhibit Moderate Academic Performance
+
+::: panel-tabset
+## Plot
+
+```{r, echo=FALSE}
+p1 <- ggplot(data=stu_data_filtered, 
+       aes(x=Poor_Stu)) +
+  geom_bar() +
+  labs(title = "Count by Household Economic Status")
+
+p2 <- ggbarstats(stu_data_filtered, 
+           x = GPA,
+           y = Poor_Stu)
+
+p1 + p2
+```
+
+H₀ (Null Hypothesis) : There is no association between GPA and economic status.<br> H₁ (Alternative Hypothesis) : There is an association between GPA and economic status.
+
+## Code
+
+``` r
+p1 <- ggplot(data=stu_data_filtered, 
+       aes(x=Poor_Stu)) +
+  geom_bar() +
+  labs(title = "Count by Household Economic Status")
+
+p2 <- ggbarstats(stu_data_filtered, 
+           x = GPA,
+           y = Poor_Stu)
+
+p1 + p2
+```
+:::
+
+Although students from poor households show a slightly lower proportion of high GPA categories, their GPA distribution is largely concentrated around the Fair level, rather than at the extremes. This indicates that **poor students’ academic performance is generally moderate**, neither distinctly high nor low. Consistent with the chi-square test results (p \> 0.05), **household economic status does not appear to be strongly associated with GPA performance**.
+
+## \[Observation 4\] Lower GPA Outcomes Are Also Observed Among Students with Highly Educated Parents
+
+::: panel-tabset
+## Plot
+
+```{r, echo=FALSE}
+ggbarstats(stu_data_filtered, 
+           x = Father_Edu,
+           y = GPA)+
+     labs(title = "GPA Performance by Father's Educatioin")
+ggbarstats(stu_data_filtered, 
+           x = Mother_Edu, 
+           y = GPA)+
+     labs(title = "GPA Performance by Mother's Educatioin")
+```
+
+H₀ (Null Hypothesis) : There is no association between GPA and parents' education level groups.<br> H₁ (Alternative Hypothesis) : There is an association between GPA and parents' education level groups.
+
+## Code
+
+``` r
+ggbarstats(stu_data_filtered, 
+           x = Father_Edu,
+           y = GPA)+
+     labs(title = "GPA Performance by Father's Educatioin")
+ggbarstats(stu_data_filtered, 
+           x = Mother_Edu, 
+           y = GPA)+
+     labs(title = "GPA Performance by Mother's Educatioin")
+```
+:::
+
+Chi-square test results show that GPA performance is statistically significantly associated with parental education levels (p \< 0.001), although the strength of this association is relatively weak. From fathers’ education levels, students with better GPA performance tend to have a higher proportion of fathers with higher educational attainment. However, this pattern is not consistent, as **nearly 48% of students with the poorest GPA performance also have fathers with the highest education level**. A similar situation is observed when examining mothers’ education levels, where higher parental education appears across both high and low GPA groups. Therefore, these results suggest that **higher parental education does not necessarily guarantee higher GPA outcomes for students**.
+
+::: {.callout-note title="Topic 2 Conclusion"}
+Overall, household economic status shows limited association with students’ GPA performance, while parental education level is statistically related to GPA but with a weak effect.<br> These results suggest that family and socioeconomic background alone does not strongly determine students’ academic outcomes.
+:::
+
+# \[Topic 3\] Do university resources, such as curriculum design and lecturer quality, have an impact on students’ academic performance?
+
+## \[Observation 5\] Students with better academic performance tend to hold more positive perceptions of lecturer teaching quality and support.
+
+::: panel-tabset
+## Plot
+
+```{r, echo=FALSE}
+ggbarstats(stu_data_filtered, 
+           x = Quality_Lecturer,
+           y = GPA)+
+     labs(title = "GPA Performance by Lecturer's Quality")
+ggbarstats(stu_data_filtered, 
+           x = SupportOf_Lec, 
+           y = GPA)+
+     labs(title = "GPA Distribution by Perceived Lecturer Support")
+```
+
+H₀ (Null Hypothesis) : There is no association between GPA and Lecturer's Quality/Support.<br> H₁ (Alternative Hypothesis) : There is an association between GPA and Lecturer's Quality/Support.
+
+## Code
+
+``` r
+ggbarstats(stu_data_filtered, 
+           x = Quality_Lecturer,
+           y = GPA)+
+     labs(title = "GPA Performance by Lecturer's Quality")
+ggbarstats(stu_data_filtered, 
+           x = SupportOf_Lec, 
+           y = GPA)+
+     labs(title = "GPA Distribution by Perceived Lecturer Support")
+```
+:::
+
+The chi-square test results indicate a statistically significant association between students’ GPA performance and both perceived lecturer quality and perceived lecturer support (p \< 0.001). **Students with higher GPA levels tend to rate lecturer teaching quality more positively and report receiving greater academic support.** In contrast, students with lower GPA performance are more likely to perceive poorer teaching quality and lower levels of lecturer support.
+
+## \[Observation 6\] Students with weaker academic performance still largely perceive the curriculum as appropriate
+
+::: panel-tabset
+## Plot
+
+```{r, echo=FALSE}
+ggbarstats(stu_data_filtered, 
+           x = TrainingCurriculum,
+           y = GPA)+
+     labs(title = "GPA Distribution by Perceived Curriculum Suitability")
+```
+
+H₀ (Null Hypothesis) : There is no association between GPA and Perceived Curriculum Suitability.<br> H₁ (Alternative Hypothesis) : There is an association between GPA and Perceived Curriculum Suitability.
+
+## Code
+
+``` r
+ggbarstats(stu_data_filtered, 
+           x = TrainingCurriculum,
+           y = GPA)+
+     labs(title = "GPA Distribution by Perceived Curriculum Suitability")
+```
+:::
+
+The chi-square test indicates a statistically significant association between GPA performance and perceived curriculum suitability (p \< 0.001), although the effect size is relatively small. Overall, the majority of students across all GPA categories perceive the curriculum as Quite or Very suitable, suggesting that the curriculum is generally viewed positively. Students with lower GPA performance also report a relatively high proportion of Quite and Very responses regarding curriculum suitability. This suggests that lower academic performance does not necessarily coincide with negative perceptions of curriculum design. We can conclude that **perceptions of curriculum suitability are generally positive across GPA groups, including students with lower academic performance.**
+
+::: {.callout-note title="Topic 3 Conclusion"}
+Overall, lecturer quality and support are more strongly associated with GPA performance than curriculum suitability, which is generally viewed positively regardless of students’ academic outcomes.
+:::
+
+# Conclusion
+
+-   Students’ time allocation is a key factor associated with academic performance, with longer study time linked to higher GPA and greater leisure time linked to lower GPA outcomes.
+
+-   Family and socioeconomic background show limited influence on GPA, as household economic status is not significantly associated with academic performance and parental education exhibits only a weak relationship.
+
+-   University resources matter unevenly, where perceived lecturer quality and lecturer support are more strongly associated with GPA performance than curriculum suitability, which is viewed positively across most students regardless of GPA.
+
+Overall, the findings suggest that students’ daily behaviors and learning interactions play a more important role in academic outcomes than background factors.
+
+# Reference
+Doan Tran, V., Nguyen, K. S. T., & Le, D. N. (2025). Dataset of factors affecting learning outcomes of students at the University of Education, Vietnam National University, Hanoi. Data in Brief, 59, 111438. https://doi.org/10.1016/j.dib.2025.111438
