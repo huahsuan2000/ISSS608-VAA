@@ -1,0 +1,12 @@
+name: ShinyDemo
+title: ShinyDemo
+username: huahsuan2000
+account: huahsuan2000
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16729699
+bundleId: 11610433
+url: https://huahsuan2000.shinyapps.io/ShinyDemo/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
