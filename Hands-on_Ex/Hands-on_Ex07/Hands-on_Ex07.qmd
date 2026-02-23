@@ -106,6 +106,7 @@ make_hr_wkday <- function(ts, sc, tz) {
 Step 2: Deriving the attacks tibble data frame
 
 ```{r}
+Sys.setlocale("LC_TIME", "English")
 wkday_levels <- c('Saturday', 'Friday', 
                   'Thursday', 'Wednesday', 
                   'Tuesday', 'Monday', 
@@ -147,7 +148,7 @@ ggplot(grouped,
            fill = n)) + 
 geom_tile(color = "white", 
           size = 0.1) + 
-theme_tufte(base_family = "Helvetica") + 
+theme_tufte(base_family = "sans") + 
 coord_equal() +
 scale_fill_gradient(name = "# of attacks",
                     low = "sky blue", 
@@ -161,7 +162,6 @@ theme(axis.ticks = element_blank(),
       legend.text = element_text(size = 6) )
   
 ```
-Issue: Failed to running out the heatmap fpr many times.
 
 ::: {.callout-note title="Things to learn from the code chunk"}
 -   a tibble data table called grouped is derived by aggregating the attack by *wkday* and hour fields.
@@ -196,6 +196,7 @@ In order to identify the top 4 countries with the highest number of attacks, you
 -   save the results in a tibble data frame.
 
 ```{r}
+Sys.setlocale("LC_TIME", "English")
 attacks_by_country <- count(
   attacks, source_country) %>%
   mutate(percent = percent(n/sum(n))) %>%
@@ -221,7 +222,7 @@ top4_attacks <- attacks %>%
 
 Step 3: Plotting the Multiple Calender Heatmap by using ggplot2 package.
 
-```r
+```{r}
 ggplot(top4_attacks, 
        aes(hour, 
            wkday, 
