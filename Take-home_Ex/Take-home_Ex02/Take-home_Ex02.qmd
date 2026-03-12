@@ -1,0 +1,9 @@
+---
+title: "Take-home Exercise 2"
+author: "SHIH, HUA-HSUAN"
+---
+# Load Packages and Data
+```{r}
+pacman::p_load(tidyverse, rpart, rpart.plot, sparkline, visNetwork, 
+               caret, ranger, patchwork)
+```
