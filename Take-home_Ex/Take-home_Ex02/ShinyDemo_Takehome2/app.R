@@ -1,6 +1,6 @@
 pacman::p_load(
   shiny, shinyWidgets, tidyverse, readr, rpart,
-  caret, visNetwork, partykit
+  caret, visNetwork, partykit, ranger
 )
 
 customer_data_clean <- readr::read_rds("../data/customer_data_clean.rds")
@@ -66,167 +66,330 @@ ui <- fluidPage(
         border-radius: 8px;
         padding: 12px;
       }
+
+      .error-box {
+        background: #fdecec;
+        border: 1px solid #f5b5b5;
+        color: #b30000;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+      }
     "))
   ),
   
-  titlePanel("Decision Tree Model"),
-  #width加總起來為12
-  fluidRow(
-    column(
-      width = 3,   
-      div(
-        class = "control-panel",
-        h4("Model Setup"),
-        
-        pickerInput(
-          inputId = "predictors",
-          label = "Variable Selection",
-          choices = predictor_choices,
-          selected = predictor_choices,
-          multiple = TRUE,
-          options = list(
-            `actions-box` = TRUE,
-            `live-search` = TRUE,
-            `selected-text-format` = "count > 10",
-            `none-selected-text` = "Please select variables"
-          )
-        ),
-        
-        sliderInput(
-          inputId = "split_ratio",
-          label = "Train/Test Split Ratio",
-          min = 0.5,
-          max = 0.9,
-          value = 0.8,
-          step = 0.05
-        ),
-        
-        sliderInput(
-          inputId = "minsplit",
-          label = "Minimum Split",
-          min = 5,
-          max = 50,
-          value = 10,
-          step = 1
-        ),
-        
-        sliderInput(
-          inputId = "maxdepth",
-          label = "Maximum Depth",
-          min = 1,
-          max = 15,
-          value = 10,
-          step = 1
-        ),
-        
-        sliderInput(
-          inputId = "cp",
-          label = "Complexity Parameter (CP)",
-          min = 0.0001,
-          max = 0.05,
-          value = 0.001,
-          step = 0.0005
-        ),
-        
-        actionButton("build_model", "Build Model"),
-        
-        br(), br(),
-        h4("Parameter Explanation"),
-        div(
-          class = "path-box",
-          tags$p(
-            tags$b("Train/Test Split Ratio: "),
-            "Controls how the dataset is divided into training and testing sets. For example, 0.8 means 80% of the data is used for training and 20% for testing."
-          ),
-          tags$p(
-            tags$b("Minimum Split: "),
-            "Defines the minimum number of observations required in a node before the tree is allowed to split that node."
-          ),
-          tags$p(
-            tags$b("Maximum Depth: "),
-            "Sets the maximum number of levels the tree can grow. A deeper tree is more flexible but may also become more complex."
-          ),
-          tags$p(
-            tags$b("Complexity Parameter (CP): "),
-            "Controls whether a split is worthwhile. A higher CP makes the tree simpler, while a lower CP allows more splits."
-          )
-        )
-      )
-    ),
-    column(
-      width = 9,
-      
-      h3(class = "section-title", "Model Performance"),
-      div(
-        class = "metric-row",
-        uiOutput("rmse_box"),
-        uiOutput("mae_box"),
-        uiOutput("r2_box")
-      ),
-      
-      h3(class = "section-title", "Decision Tree Dashboard"),
-      
-      tabsetPanel(
-        id = "main_tabs",
-        
-        tabPanel(
-          "Model Visualization",
-          br(),
-          fluidRow(
-            column(
-              width = 7,
-              div(
-                class = "chart-card",
-                h4("Decision Tree"),
-                visNetworkOutput("tree_plot", height = "450px")
+  titlePanel("Predict Model"),
+  
+  tabsetPanel(
+    id = "model_tabs",
+    
+    # ==================================================
+    # Decision Tree
+    # ==================================================
+    tabPanel(
+      "Decision Tree",
+      br(),
+      fluidRow(
+        column(
+          width = 3,   
+          div(
+            class = "control-panel",
+            h4("Model Setup"),
+            
+            pickerInput(
+              inputId = "predictors",
+              label = "Variable Selection",
+              choices = predictor_choices,
+              selected = predictor_choices,
+              multiple = TRUE,
+              options = list(
+                `actions-box` = TRUE,
+                `live-search` = TRUE,
+                `selected-text-format` = "count > 10",
+                `none-selected-text` = "Please select variables"
               )
             ),
             
-            column(
-              width = 5,
-              div(
-                class = "chart-card",
-                h4("Predicted vs Actual on Test Data"),
-                plotOutput("pred_actual_plot", height = "200px")
+            sliderInput(
+              inputId = "split_ratio",
+              label = "Train/Test Split Ratio",
+              min = 0.5,
+              max = 0.9,
+              value = 0.8,
+              step = 0.05
+            ),
+            
+            sliderInput(
+              inputId = "minsplit",
+              label = "Minimum Split",
+              min = 5,
+              max = 50,
+              value = 10,
+              step = 1
+            ),
+            
+            sliderInput(
+              inputId = "maxdepth",
+              label = "Maximum Depth",
+              min = 1,
+              max = 15,
+              value = 10,
+              step = 1
+            ),
+            
+            sliderInput(
+              inputId = "cp",
+              label = "Complexity Parameter (CP)",
+              min = 0.0001,
+              max = 0.05,
+              value = 0.001,
+              step = 0.0005
+            ),
+            
+            actionButton("build_model", "Build Model"),
+            
+            br(), br(),
+            h4("Parameter Explanation"),
+            div(
+              class = "path-box",
+              tags$p(
+                tags$b("Train/Test Split Ratio: "),
+                "Controls how the dataset is divided into training and testing sets. For example, 0.8 means 80% of the data is used for training and 20% for testing."
               ),
-              
-              div(
-                class = "chart-card",
-                h4("Feature Importance of Decision Tree"),
-                plotOutput("importance_plot", height = "250px")
+              tags$p(
+                tags$b("Minimum Split: "),
+                "Defines the minimum number of observations required in a node before the tree is allowed to split that node."
+              ),
+              tags$p(
+                tags$b("Maximum Depth: "),
+                "Sets the maximum number of levels the tree can grow. A deeper tree is more flexible but may also become more complex."
+              ),
+              tags$p(
+                tags$b("Complexity Parameter (CP): "),
+                "Controls whether a split is worthwhile. A higher CP makes the tree simpler, while a lower CP allows more splits."
               )
             )
           )
         ),
-        
-        tabPanel(
-          "Scenario Prediction",
-          br(),
-          fluidRow(
-            column(
-              width = 4,
-              div(
-                class = "chart-card",
-                h4("Input Scenario"),
-                p("Enter values for the variables used by the current tree model."),
-                uiOutput("scenario_inputs"),
-                br(),
-                actionButton("predict_case", "Predict Scenario")
+        column(
+          width = 9,
+          
+          h3(class = "section-title", "Model Performance"),
+          div(
+            class = "metric-row",
+            uiOutput("rmse_box"),
+            uiOutput("mae_box"),
+            uiOutput("r2_box")
+          ),
+          
+          h3(class = "section-title", "Decision Tree Dashboard"),
+          
+          tabsetPanel(
+            id = "main_tabs",
+            
+            tabPanel(
+              "Model Visualization",
+              br(),
+              fluidRow(
+                column(
+                  width = 7,
+                  div(
+                    class = "chart-card",
+                    h4("Decision Tree"),
+                    visNetworkOutput("tree_plot", height = "450px")
+                  )
+                ),
+                
+                column(
+                  width = 5,
+                  div(
+                    class = "chart-card",
+                    h4("Predicted vs Actual on Test Data"),
+                    plotOutput("pred_actual_plot", height = "200px")
+                  ),
+                  
+                  div(
+                    class = "chart-card",
+                    h4("Feature Importance of Decision Tree"),
+                    plotOutput("importance_plot", height = "250px")
+                  )
+                )
               )
             ),
             
-            column(
-              width = 8,
-              div(
-                class = "chart-card",
-                h4("Prediction Result"),
-                uiOutput("scenario_pred_box")
+            tabPanel(
+              "Scenario Prediction",
+              br(),
+              fluidRow(
+                column(
+                  width = 4,
+                  div(
+                    class = "chart-card",
+                    h4("Input Scenario"),
+                    p("Enter values for the variables used by the current tree model."),
+                    uiOutput("scenario_inputs"),
+                    br(),
+                    actionButton("predict_case", "Predict Scenario")
+                  )
+                ),
+                
+                column(
+                  width = 8,
+                  div(
+                    class = "chart-card",
+                    h4("Prediction Result"),
+                    uiOutput("scenario_pred_box")
+                  ),
+                  
+                  div(
+                    class = "chart-card",
+                    h4("Decision Path"),
+                    uiOutput("decision_path")
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
+    
+    # ==================================================
+    # Random Forest
+    # ==================================================
+    tabPanel(
+      "Random Forest",
+      br(),
+      fluidRow(
+        column(
+          width = 3,
+          div(
+            class = "control-panel",
+            h4("Model Setup"),
+            
+            pickerInput(
+              inputId = "rf_predictors",
+              label = "Variable Selection",
+              choices = predictor_choices,
+              selected = predictor_choices,
+              multiple = TRUE,
+              options = list(
+                `actions-box` = TRUE,
+                `live-search` = TRUE,
+                `selected-text-format` = "count > 10",
+                `none-selected-text` = "Please select variables"
+              )
+            ),
+            
+            sliderInput(
+              inputId = "rf_split_ratio",
+              label = "Train/Test Split Ratio",
+              min = 0.5,
+              max = 0.9,
+              value = 0.8,
+              step = 0.05
+            ),
+            
+            sliderInput(
+              inputId = "rf_num_trees",
+              label = "Number of Trees",
+              min = 50,
+              max = 300,
+              value = 100,
+              step = 25
+            ),
+            
+            actionButton("rf_build_model", "Build Model"),
+            
+            br(), br(),
+            h4("Parameter Explanation"),
+            div(
+              class = "path-box",
+              tags$p(
+                tags$b("Train/Test Split Ratio: "),
+                "Controls how the dataset is divided into training and testing sets. For example, 0.8 means 80% of the data is used for training and 20% for testing."
               ),
-              
-              div(
-                class = "chart-card",
-                h4("Decision Path"),
-                uiOutput("decision_path")
+              tags$p(
+                tags$b("Number of Trees: "),
+                "Defines how many trees are built in the random forest model."
+              )
+            )
+          )
+        ),
+        column(
+          width = 9,
+          
+          h3(class = "section-title", "Model Performance"),
+          uiOutput("rf_error_box"),
+          div(
+            class = "metric-row",
+            uiOutput("rf_rmse_box"),
+            uiOutput("rf_mae_box"),
+            uiOutput("rf_r2_box")
+          ),
+          
+          h3(class = "section-title", "Random Forest Dashboard"),
+          
+          tabsetPanel(
+            id = "rf_tabs",
+            
+            tabPanel(
+              "Model Visualization",
+              br(),
+              fluidRow(
+                column(
+                  width = 6,
+                  div(
+                    class = "chart-card",
+                    h4("Predicted vs Actual on Test Data"),
+                    plotOutput("rf_pred_actual_plot", height = "300px")
+                  )
+                ),
+                
+                column(
+                  width = 6,
+                  div(
+                    class = "chart-card",
+                    h4("Feature Importance of Random Forest"),
+                    plotOutput("rf_importance_plot", height = "300px")
+                  )
+                )
+              )
+            ),
+            
+            tabPanel(
+              "Scenario Prediction",
+              br(),
+              fluidRow(
+                column(
+                  width = 4,
+                  div(
+                    class = "chart-card",
+                    h4("Input Scenario"),
+                    p("Enter values for the selected predictors to generate a random forest prediction."),
+                    uiOutput("rf_scenario_inputs"),
+                    br(),
+                    actionButton("rf_predict_case", "Predict Scenario")
+                  )
+                ),
+                
+                column(
+                  width = 8,
+                  div(
+                    class = "chart-card",
+                    h4("Prediction Result"),
+                    uiOutput("rf_scenario_pred_box")
+                  ),
+                  
+                  div(
+                    class = "chart-card",
+                    h4("Model Note"),
+                    div(
+                      class = "path-box",
+                      "Random Forest is an ensemble of many trees, so there is no single decision path to display."
+                    )
+                  )
+                )
               )
             )
           )
@@ -348,6 +511,50 @@ server <- function(input, output, session) {
       } else if (is.logical(template)) {
         out[[var]] <- as.logical(val)
         
+      } else {
+        out[[var]] <- as.numeric(val)
+      }
+    }
+    
+    as.data.frame(out, stringsAsFactors = FALSE)
+  }
+  
+  # RF helper
+  make_input_ui_rf <- function(var, data) {
+    x <- data[[var]]
+    input_id <- paste0("rf_case_", var)
+    
+    if (is.factor(x)) {
+      default_val <- get_factor_default(x)
+      
+      selectInput(
+        inputId = input_id,
+        label = var,
+        choices = levels(x),
+        selected = default_val
+      )
+      
+    } else {
+      default_val <- get_numeric_default(x)
+      
+      numericInput(
+        inputId = input_id,
+        label = var,
+        value = round(default_val, 2)
+      )
+    }
+  }
+  
+  build_new_case_rf <- function(all_vars, data, input) {
+    out <- vector("list", length(all_vars))
+    names(out) <- all_vars
+    
+    for (var in all_vars) {
+      template <- data[[var]]
+      val <- input[[paste0("rf_case_", var)]]
+      
+      if (is.factor(template)) {
+        out[[var]] <- factor(as.character(val), levels = levels(template))
       } else {
         out[[var]] <- as.numeric(val)
       }
@@ -572,6 +779,237 @@ server <- function(input, output, session) {
           tags$li(step)
         })
       )
+    )
+  })
+  
+  # =========================
+  # Random Forest
+  # =========================
+  rf_model_results <- eventReactive(input$rf_build_model, {
+    tryCatch({
+      req(input$rf_predictors)
+      req(length(input$rf_predictors) > 0)
+      
+      df_model <- customer_data_clean %>%
+        select(all_of(c(target_var, input$rf_predictors))) %>%
+        mutate(across(where(is.logical), ~ factor(.x, levels = c(FALSE, TRUE)))) %>%
+        drop_na() %>%
+        as.data.frame()
+      
+      set.seed(1234)
+      
+      train_index <- createDataPartition(
+        df_model[[target_var]],
+        p = input$rf_split_ratio,
+        list = FALSE
+      )
+      
+      df_train <- df_model[train_index, , drop = FALSE]
+      df_test  <- df_model[-train_index, , drop = FALSE]
+      
+      p <- length(input$rf_predictors)
+      
+      rf_grid <- expand.grid(
+        mtry = max(1, floor(sqrt(p))),
+        splitrule = "variance",
+        min.node.size = 5
+      )
+      
+      rf_control <- trainControl(method = "none")
+      
+      fit_rf <- caret::train(
+        x = df_train[, input$rf_predictors, drop = FALSE],
+        y = df_train[[target_var]],
+        method = "ranger",
+        trControl = rf_control,
+        tuneGrid = rf_grid,
+        num.trees = input$rf_num_trees,
+        importance = "impurity"
+      )
+      
+      df_test$pred_rf <- predict(
+        fit_rf,
+        newdata = df_test[, input$rf_predictors, drop = FALSE]
+      )
+      
+      rf_importance <- varImp(fit_rf)$importance %>%
+        tibble::rownames_to_column("Variable") %>%
+        rename(Importance = Overall) %>%
+        arrange(desc(Importance))
+      
+      rmse_value <- sqrt(mean((df_test[[target_var]] - df_test$pred_rf)^2))
+      mae_value  <- mean(abs(df_test[[target_var]] - df_test$pred_rf))
+      
+      r2_value <- if (sd(df_test[[target_var]]) == 0 || sd(df_test$pred_rf) == 0) {
+        NA_real_
+      } else {
+        cor(df_test[[target_var]], df_test$pred_rf)^2
+      }
+      
+      list(
+        ok = TRUE,
+        error_message = NULL,
+        fit_rf = fit_rf,
+        df_model = df_model,
+        df_test = df_test,
+        rf_importance = rf_importance,
+        rmse_value = rmse_value,
+        mae_value = mae_value,
+        r2_value = r2_value,
+        selected_predictors = input$rf_predictors
+      )
+      
+    }, error = function(e) {
+      list(
+        ok = FALSE,
+        error_message = e$message
+      )
+    })
+  })
+  
+  rf_scenario_result <- eventReactive(input$rf_predict_case, {
+    tryCatch({
+      req(rf_model_results())
+      req(isTRUE(rf_model_results()$ok))
+      
+      all_vars <- rf_model_results()$selected_predictors
+      
+      new_case <- build_new_case_rf(
+        all_vars = all_vars,
+        data = rf_model_results()$df_model,
+        input = input
+      )
+      
+      pred_value <- as.numeric(
+        predict(rf_model_results()$fit_rf, newdata = new_case)
+      )
+      
+      list(
+        ok = TRUE,
+        error_message = NULL,
+        new_case = new_case,
+        pred_value = pred_value
+      )
+      
+    }, error = function(e) {
+      list(
+        ok = FALSE,
+        error_message = e$message
+      )
+    })
+  })
+  
+  output$rf_error_box <- renderUI({
+    req(rf_model_results())
+    
+    if (!isTRUE(rf_model_results()$ok)) {
+      div(
+        class = "error-box",
+        strong("Random Forest error: "),
+        rf_model_results()$error_message
+      )
+    }
+  })
+  
+  output$rf_rmse_box <- renderUI({
+    req(rf_model_results())
+    req(isTRUE(rf_model_results()$ok))
+    
+    div(
+      class = "metric-box",
+      h3(round(rf_model_results()$rmse_value, 4)),
+      p("RMSE")
+    )
+  })
+  
+  output$rf_mae_box <- renderUI({
+    req(rf_model_results())
+    req(isTRUE(rf_model_results()$ok))
+    
+    div(
+      class = "metric-box",
+      h3(round(rf_model_results()$mae_value, 4)),
+      p("MAE")
+    )
+  })
+  
+  output$rf_r2_box <- renderUI({
+    req(rf_model_results())
+    req(isTRUE(rf_model_results()$ok))
+    
+    div(
+      class = "metric-box",
+      h3(round(rf_model_results()$r2_value, 4)),
+      p("R-squared")
+    )
+  })
+  
+  output$rf_pred_actual_plot <- renderPlot({
+    req(rf_model_results())
+    req(isTRUE(rf_model_results()$ok))
+    
+    ggplot(rf_model_results()$df_test, aes(x = churn_probability, y = pred_rf)) +
+      geom_point(alpha = 0.6) +
+      geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 1) +
+      labs(
+        x = "Actual Churn Probability",
+        y = "Predicted Churn Probability"
+      ) +
+      theme_minimal(base_size = 12)
+  })
+  
+  output$rf_importance_plot <- renderPlot({
+    req(rf_model_results())
+    req(isTRUE(rf_model_results()$ok))
+    
+    validate(
+      need(
+        nrow(rf_model_results()$rf_importance) > 0,
+        "No variable importance available for this forest."
+      )
+    )
+    
+    rf_model_results()$rf_importance %>%
+      slice_head(n = 10) %>%
+      ggplot(aes(x = reorder(Variable, Importance), y = Importance)) +
+      geom_col() +
+      coord_flip() +
+      labs(
+        x = "Variable",
+        y = "Importance"
+      ) +
+      theme_minimal(base_size = 12)
+  })
+  
+  output$rf_scenario_inputs <- renderUI({
+    req(rf_model_results())
+    req(isTRUE(rf_model_results()$ok))
+    
+    input_vars <- rf_model_results()$selected_predictors
+    
+    tagList(
+      lapply(input_vars, make_input_ui_rf, data = rf_model_results()$df_model)
+    )
+  })
+  
+  output$rf_scenario_pred_box <- renderUI({
+    req(rf_scenario_result())
+    
+    if (!isTRUE(rf_scenario_result()$ok)) {
+      return(
+        div(
+          class = "error-box",
+          strong("Prediction error: "),
+          rf_scenario_result()$error_message
+        )
+      )
+    }
+    
+    div(
+      class = "metric-box",
+      style = "width: 220px;",
+      h3(sprintf("%.2f%%", rf_scenario_result()$pred_value * 100)),
+      p("Predicted Churn Probability")
     )
   })
 }

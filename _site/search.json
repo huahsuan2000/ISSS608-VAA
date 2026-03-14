@@ -977,21 +977,21 @@
     "href": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#control-panel",
     "title": "Take-home Exercise 2",
     "section": "Control Panel",
-    "text": "Control Panel\nThe left control panel allows users to adjust key model settings, including variable selection, train/test split ratio, minimum split, maximum depth, and complexity parameter. It also includes parameter definitions to help users better understand the meaning of each setting."
+    "text": "Control Panel\nThe Left Control Panel allows users to adjust key model settings, including variable selection and the train/test split ratio for both models. Additionally, users can modify model-specific parameters: minimum split, maximum depth, and complexity parameter (for Decision Tree), or the number of trees (for Random Forest). It also includes parameter definitions to help users better understand the technical meaning and impact of each setting.\n\nDecision Tree\n\n\n\n\nRandom Forest"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#model-performance",
     "href": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#model-performance",
     "title": "Take-home Exercise 2",
     "section": "Model Performance",
-    "text": "Model Performance\nThis section summarizes how well the decision tree performs on the test dataset. After clicking “Build Model,” the app automatically calculates RMSE, MAE, and R-squared to evaluate prediction accuracy and overall model fit."
+    "text": "Model Performance\nThis section summarizes how well the decision tree performs on the test dataset. After clicking “Build Model,” the app automatically calculates RMSE, MAE, and R-squared to evaluate prediction accuracy and overall model fit.\n\nDecision Tree\n\nRandom Forest"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#model-visualization",
     "href": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#model-visualization",
     "title": "Take-home Exercise 2",
     "section": "Model Visualization",
-    "text": "Model Visualization\nDisplays the main visual outputs of the trained decision tree model, including the tree structure, predicted vs actual results on the test dataset, and the top 10 most important variables. This section helps users interpret model behavior and evaluate prediction performance."
+    "text": "Model Visualization\nDisplays the main visual outputs of the trained model, including the tree structure (for Decision Tree), predicted vs actual results on the test dataset, and the top 10 most important variables. This section helps users interpret model behavior and evaluate prediction performance.\n\nDecision Tree\n\nRandom Forest"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#scenario-predictioin",
@@ -1005,6 +1005,48 @@
     "href": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#scenario-prediction",
     "title": "Take-home Exercise 2",
     "section": "Scenario Prediction",
-    "text": "Scenario Prediction\nAllows users to test a custom scenario by entering values for the variables used in the current decision tree. The app then generates the predicted churn probability and displays the corresponding terminal node and decision path."
+    "text": "Scenario Prediction\nAllows users to test a custom scenario by entering values for the variables used in the current model. The app then generates the predicted churn probability and displays the corresponding terminal node and decision path.\n\nDecision Tree\n\nRandom Forest"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#train-test-split-1",
+    "href": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#train-test-split-1",
+    "title": "Take-home Exercise 2",
+    "section": "Train-Test Split",
+    "text": "Train-Test Split\nSimilar to the decision tree model, the Shiny application allows users to customize the train-test split ratio for the random forest model. By default, the current implementation also uses an 80/20 split, where 80% of the dataset is allocated to the training set and the remaining 20% is reserved for testing.\n\nset.seed(1234)\n\ntrain_index_rf &lt;- createDataPartition(\n  customer_data_clean$churn_probability,\n  p = 0.8,\n  list = FALSE\n)\n\ndf_train_rf &lt;- customer_data_clean[train_index_rf, ]\ndf_test_rf  &lt;- customer_data_clean[-train_index_rf, ]"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#build-random-forest-function",
+    "href": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#build-random-forest-function",
+    "title": "Take-home Exercise 2",
+    "section": "Build Random Forest Function",
+    "text": "Build Random Forest Function\nwe use the ranger engine through the caret framework. The current code is parameterized for the number of trees, allowing the model complexity to be adjusted. After the Shiny application will allow users to choose their own predictors, customize the train-test split ratio, and modify the number of trees interactively.\n\nrf_grid &lt;- expand.grid(\n  mtry = max(1, floor(sqrt(ncol(df_train_rf) - 1))),\n  splitrule = \"variance\",\n  min.node.size = 5\n)\n\nrf_control &lt;- trainControl(method = \"none\")\n\nrf_model &lt;- function(num_trees) {\n  train(\n    churn_probability ~ .,\n    data = df_train_rf,\n    method = \"ranger\",\n    trControl = rf_control,\n    tuneGrid = rf_grid,\n    num.trees = num_trees,\n    importance = \"impurity\"\n  )\n}\n\nfit_rf &lt;- rf_model(num_trees = 100)"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#predict-on-test-data-1",
+    "href": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#predict-on-test-data-1",
+    "title": "Take-home Exercise 2",
+    "section": "Predict on Test Data",
+    "text": "Predict on Test Data\n\ndf_test_rf$pred_rf &lt;- predict(fit_rf, newdata = df_test_rf)"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#predicted-vs-actual-on-test-data-1",
+    "href": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#predicted-vs-actual-on-test-data-1",
+    "title": "Take-home Exercise 2",
+    "section": "Predicted vs Actual on Test Data",
+    "text": "Predicted vs Actual on Test Data\nTo evaluate the predictive performance, a scatter plot of predicted versus actual churn probabilities was constructed. Similar to the decision tree model, a strong concentration of points around the 45-degree reference line indicates that the random forest model is able to generate reliable estimates of churn risk.\n\nggplot(df_test_rf, aes(x = churn_probability, y = pred_rf)) +\n  geom_point(alpha = 0.6) +\n  geom_abline(slope = 1, intercept = 0, color = \"red\", linewidth = 1) +\n  labs(\n    title = \"Predicted vs Actual on Test Data\",\n    x = \"Actual Churn Probability\",\n    y = \"Predicted Churn Probability\"\n  ) +\n  theme_minimal(base_size = 13)"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#feature-importance-of-random-forest",
+    "href": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#feature-importance-of-random-forest",
+    "title": "Take-home Exercise 2",
+    "section": "Feature Importance of Random Forest",
+    "text": "Feature Importance of Random Forest\nWe extract the variable importance scores from the fitted random forest model using the varImp() function and convert them into a structured table format for easier interpretation. The variables are then sorted in descending order according to their importance scores, and only the top 10 most influential features are displayed.\n\nrf_importance &lt;- varImp(fit_rf)$importance %&gt;%\n  tibble::rownames_to_column(\"Variable\") %&gt;%\n  rename(Importance = Overall) %&gt;%\n  arrange(desc(Importance))\n\nrf_importance %&gt;%\n  slice_head(n = 10) %&gt;%\n  ggplot(aes(x = reorder(Variable, Importance), y = Importance)) +\n  geom_col() +\n  coord_flip() +\n  labs(\n    title = \"Feature Importance of Random Forest\",\n    x = \"Variable\",\n    y = \"Importance\"\n  ) +\n  theme_minimal(base_size = 13)"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#model-performance-metrics-1",
+    "href": "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html#model-performance-metrics-1",
+    "title": "Take-home Exercise 2",
+    "section": "Model Performance Metrics",
+    "text": "Model Performance Metrics\nThe concept is same as decision tree metrics.\n\nrmse_value_rf &lt;- sqrt(mean((df_test_rf$churn_probability - df_test_rf$pred_rf)^2))\nmae_value_rf  &lt;- mean(abs(df_test_rf$churn_probability - df_test_rf$pred_rf))\nr2_value_rf   &lt;- cor(df_test_rf$churn_probability, df_test_rf$pred_rf)^2\n\ntibble(\n  Metric = c(\"RMSE\", \"MAE\", \"R-squared\"),\n  Value = round(c(rmse_value_rf, mae_value_rf, r2_value_rf), 4)\n)\n\n# A tibble: 3 × 2\n  Metric     Value\n  &lt;chr&gt;      &lt;dbl&gt;\n1 RMSE      0.0316\n2 MAE       0.0243\n3 R-squared 0.909"
   }
 ]

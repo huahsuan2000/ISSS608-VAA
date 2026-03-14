@@ -281,9 +281,18 @@ window.Quarto = {
   <li><a href="#feature-importance-of-decision-tree" id="toc-feature-importance-of-decision-tree" class="nav-link" data-scroll-target="#feature-importance-of-decision-tree">Feature Importance of Decision Tree</a></li>
   <li><a href="#model-performance-metrics" id="toc-model-performance-metrics" class="nav-link" data-scroll-target="#model-performance-metrics">Model Performance Metrics</a></li>
   </ul></li>
+  <li><a href="#random-forest" id="toc-random-forest" class="nav-link" data-scroll-target="#random-forest">Random Forest</a>
+  <ul class="collapse">
+  <li><a href="#train-test-split-1" id="toc-train-test-split-1" class="nav-link" data-scroll-target="#train-test-split-1">Train-Test Split</a></li>
+  <li><a href="#build-random-forest-function" id="toc-build-random-forest-function" class="nav-link" data-scroll-target="#build-random-forest-function">Build Random Forest Function</a></li>
+  <li><a href="#predict-on-test-data-1" id="toc-predict-on-test-data-1" class="nav-link" data-scroll-target="#predict-on-test-data-1">Predict on Test Data</a></li>
+  <li><a href="#predicted-vs-actual-on-test-data-1" id="toc-predicted-vs-actual-on-test-data-1" class="nav-link" data-scroll-target="#predicted-vs-actual-on-test-data-1">Predicted vs Actual on Test Data</a></li>
+  <li><a href="#feature-importance-of-random-forest" id="toc-feature-importance-of-random-forest" class="nav-link" data-scroll-target="#feature-importance-of-random-forest">Feature Importance of Random Forest</a></li>
+  <li><a href="#model-performance-metrics-1" id="toc-model-performance-metrics-1" class="nav-link" data-scroll-target="#model-performance-metrics-1">Model Performance Metrics</a></li>
+  </ul></li>
   <li><a href="#ui-design-introduction" id="toc-ui-design-introduction" class="nav-link" data-scroll-target="#ui-design-introduction">UI Design Introduction</a>
   <ul class="collapse">
-  <li><a href="#control-panel" id="toc-control-panel" class="nav-link" data-scroll-target="#control-panel">Control Panel</a></li>
+  <li><a href="#control-panel" id="toc-control-panel" class="nav-link" data-scroll-target="#control-panel"><img src="images/clipboard-3714820588.png" class="img-fluid">Control Panel</a></li>
   <li><a href="#model-performance" id="toc-model-performance" class="nav-link" data-scroll-target="#model-performance">Model Performance</a></li>
   <li><a href="#model-visualization" id="toc-model-visualization" class="nav-link" data-scroll-target="#model-visualization">Model Visualization</a></li>
   <li><a href="#scenario-prediction" id="toc-scenario-prediction" class="nav-link" data-scroll-target="#scenario-prediction">Scenario Prediction</a></li>
@@ -738,29 +747,177 @@ $ customer_lifetime_value    &lt;dbl&gt; 312414808, 167022286, 19403711, 3597810
 </div>
 </section>
 </section>
+<section id="random-forest" class="level1">
+<h1>Random Forest</h1>
+<section id="train-test-split-1" class="level2">
+<h2 class="anchored" data-anchor-id="train-test-split-1">Train-Test Split</h2>
+<p>Similar to the decision tree model, the Shiny application allows users to customize the train-test split ratio for the random forest model. By default, the current implementation also uses an 80/20 split, where 80% of the dataset is allocated to the training set and the remaining 20% is reserved for testing.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>train_index_rf <span class="ot">&lt;-</span> <span class="fu">createDataPartition</span>(</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  customer_data_clean<span class="sc">$</span>churn_probability,</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">p =</span> <span class="fl">0.8</span>,</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">list =</span> <span class="cn">FALSE</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>df_train_rf <span class="ot">&lt;-</span> customer_data_clean[train_index_rf, ]</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>df_test_rf  <span class="ot">&lt;-</span> customer_data_clean[<span class="sc">-</span>train_index_rf, ]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="build-random-forest-function" class="level2">
+<h2 class="anchored" data-anchor-id="build-random-forest-function">Build Random Forest Function</h2>
+<p>we use the ranger engine through the caret framework. The current code is parameterized for the number of trees, allowing the model complexity to be adjusted. After the Shiny application will allow users to choose their own predictors, customize the train-test split ratio, and modify the number of trees interactively.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>rf_grid <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">mtry =</span> <span class="fu">max</span>(<span class="dv">1</span>, <span class="fu">floor</span>(<span class="fu">sqrt</span>(<span class="fu">ncol</span>(df_train_rf) <span class="sc">-</span> <span class="dv">1</span>))),</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">splitrule =</span> <span class="st">"variance"</span>,</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">min.node.size =</span> <span class="dv">5</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>rf_control <span class="ot">&lt;-</span> <span class="fu">trainControl</span>(<span class="at">method =</span> <span class="st">"none"</span>)</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>rf_model <span class="ot">&lt;-</span> <span class="cf">function</span>(num_trees) {</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">train</span>(</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>    churn_probability <span class="sc">~</span> .,</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> df_train_rf,</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"ranger"</span>,</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">trControl =</span> rf_control,</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">tuneGrid =</span> rf_grid,</span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">num.trees =</span> num_trees,</span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">importance =</span> <span class="st">"impurity"</span></span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>fit_rf <span class="ot">&lt;-</span> <span class="fu">rf_model</span>(<span class="at">num_trees =</span> <span class="dv">100</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="predict-on-test-data-1" class="level2">
+<h2 class="anchored" data-anchor-id="predict-on-test-data-1">Predict on Test Data</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>df_test_rf<span class="sc">$</span>pred_rf <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_rf, <span class="at">newdata =</span> df_test_rf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="predicted-vs-actual-on-test-data-1" class="level2">
+<h2 class="anchored" data-anchor-id="predicted-vs-actual-on-test-data-1">Predicted vs Actual on Test Data</h2>
+<p>To evaluate the predictive performance, a scatter plot of predicted versus actual churn probabilities was constructed. Similar to the decision tree model, a strong concentration of points around the 45-degree reference line indicates that the random forest model is able to generate reliable estimates of churn risk.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_test_rf, <span class="fu">aes</span>(<span class="at">x =</span> churn_probability, <span class="at">y =</span> pred_rf)) <span class="sc">+</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">color =</span> <span class="st">"red"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Predicted vs Actual on Test Data"</span>,</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Actual Churn Probability"</span>,</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Predicted Churn Probability"</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">13</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Take-home_Ex02_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="feature-importance-of-random-forest" class="level2">
+<h2 class="anchored" data-anchor-id="feature-importance-of-random-forest">Feature Importance of Random Forest</h2>
+<p>We extract the variable importance scores from the fitted random forest model using the <code>varImp()</code> function and convert them into a structured table format for easier interpretation. The variables are then sorted in descending order according to their importance scores, and only the top 10 most influential features are displayed.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>rf_importance <span class="ot">&lt;-</span> <span class="fu">varImp</span>(fit_rf)<span class="sc">$</span>importance <span class="sc">%&gt;%</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">rownames_to_column</span>(<span class="st">"Variable"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">Importance =</span> Overall) <span class="sc">%&gt;%</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(Importance))</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>rf_importance <span class="sc">%&gt;%</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">reorder</span>(Variable, Importance), <span class="at">y =</span> Importance)) <span class="sc">+</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>() <span class="sc">+</span></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Feature Importance of Random Forest"</span>,</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Variable"</span>,</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Importance"</span></span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">13</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Take-home_Ex02_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="model-performance-metrics-1" class="level2">
+<h2 class="anchored" data-anchor-id="model-performance-metrics-1">Model Performance Metrics</h2>
+<p>The concept is same as decision tree metrics.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>rmse_value_rf <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">mean</span>((df_test_rf<span class="sc">$</span>churn_probability <span class="sc">-</span> df_test_rf<span class="sc">$</span>pred_rf)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>mae_value_rf  <span class="ot">&lt;-</span> <span class="fu">mean</span>(<span class="fu">abs</span>(df_test_rf<span class="sc">$</span>churn_probability <span class="sc">-</span> df_test_rf<span class="sc">$</span>pred_rf))</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>r2_value_rf   <span class="ot">&lt;-</span> <span class="fu">cor</span>(df_test_rf<span class="sc">$</span>churn_probability, df_test_rf<span class="sc">$</span>pred_rf)<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">Metric =</span> <span class="fu">c</span>(<span class="st">"RMSE"</span>, <span class="st">"MAE"</span>, <span class="st">"R-squared"</span>),</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">Value =</span> <span class="fu">round</span>(<span class="fu">c</span>(rmse_value_rf, mae_value_rf, r2_value_rf), <span class="dv">4</span>)</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 2
+  Metric     Value
+  &lt;chr&gt;      &lt;dbl&gt;
+1 RMSE      0.0316
+2 MAE       0.0243
+3 R-squared 0.909 </code></pre>
+</div>
+</div>
+</section>
+</section>
 <section id="ui-design-introduction" class="level1">
 <h1>UI Design Introduction</h1>
-<p>This Decision Tree Shiny app allows users to build a model by selecting variables and adjusting key parameters, including the train/test split ratio, minimum split, maximum depth, and complexity parameter. After the model is built, the app presents performance metrics such as RMSE, MAE, and R-squared, while also clearly visualizing the decision tree structure, the distribution of predicted versus actual values, and feature importance. To enhance usability and interactivity, a “Scenario Prediction” section is included, allowing users to input variable values under the current model and obtain a specific prediction result.</p>
-<p><img src="pic/full view.png" class="img-fluid"></p>
+<p>This Predict Model Shiny app enables users to construct either a Decision Tree or a Random Forest model by selecting input variables and tuning key hyperparameters. Users can adjust the train/test split ratio for both models, as well as model-specific parameters such as minimum split, maximum depth, and complexity parameter (for Decision Tree), or the number of trees (for Random Forest).</p>
+<p>Upon model completion, the app provides comprehensive performance metrics, including RMSE, MAE, and R-squared. It also features interactive visualizations: the Decision Tree structure (exclusive to the tree model), the distribution of predicted vs.&nbsp;actual values, and feature importance (available for both). To enhance practical utility, a “Scenario Prediction” section is integrated, allowing users to input specific values and obtain real-time predictions based on the active model.</p>
 <section id="control-panel" class="level2">
-<h2 class="anchored" data-anchor-id="control-panel">Control Panel</h2>
-<p>The left control panel allows users to adjust key model settings, including variable selection, train/test split ratio, minimum split, maximum depth, and complexity parameter. It also includes parameter definitions to help users better understand the meaning of each setting.</p>
-<p><img src="pic/control panel.png" class="img-fluid"></p>
+<h2 class="anchored" data-anchor-id="control-panel"><img src="images/clipboard-3714820588.png" class="img-fluid">Control Panel</h2>
+<p>The Left Control Panel allows users to adjust key model settings, including variable selection and the train/test split ratio for both models. Additionally, users can modify model-specific parameters: minimum split, maximum depth, and complexity parameter (for Decision Tree), or the number of trees (for Random Forest). It also includes parameter definitions to help users better understand the technical meaning and impact of each setting.</p>
+<ul>
+<li><p>Decision Tree</p>
+<p><img src="images/clipboard-4159740372.png" class="img-fluid"></p></li>
+</ul>
+<!-- -->
+<ul>
+<li><p>Random Forest</p>
+<p><img src="images/clipboard-792149643.png" class="img-fluid"></p></li>
+</ul>
 </section>
 <section id="model-performance" class="level2">
 <h2 class="anchored" data-anchor-id="model-performance">Model Performance</h2>
 <p>This section summarizes how well the decision tree performs on the test dataset. After clicking “Build Model,” the app automatically calculates RMSE, MAE, and R-squared to evaluate prediction accuracy and overall model fit.</p>
-<p><img src="images/clipboard-3162422269.png" class="img-fluid"></p>
+<ul>
+<li><p>Decision Tree</p>
+<p><img src="images/clipboard-3143185535.png" class="img-fluid"></p></li>
+<li><p>Random Forest</p>
+<p><img src="images/clipboard-1771477104.png" class="img-fluid"></p></li>
+</ul>
 </section>
 <section id="model-visualization" class="level2">
 <h2 class="anchored" data-anchor-id="model-visualization">Model Visualization</h2>
-<p>Displays the main visual outputs of the trained decision tree model, including the tree structure, predicted vs actual results on the test dataset, and the top 10 most important variables. This section helps users interpret model behavior and evaluate prediction performance.</p>
-<p><img src="images/clipboard-2026271510.png" class="img-fluid"></p>
+<p>Displays the main visual outputs of the trained model, including the tree structure (for Decision Tree), predicted vs actual results on the test dataset, and the top 10 most important variables. This section helps users interpret model behavior and evaluate prediction performance.</p>
+<ul>
+<li><p>Decision Tree</p>
+<p><img src="images/clipboard-3436640713.png" class="img-fluid"></p></li>
+<li><p>Random Forest</p>
+<p><img src="images/clipboard-4204449902.png" class="img-fluid"></p></li>
+</ul>
 </section>
 <section id="scenario-prediction" class="level2">
 <h2 class="anchored" data-anchor-id="scenario-prediction">Scenario Prediction</h2>
-<p>Allows users to test a custom scenario by entering values for the variables used in the current decision tree. The app then generates the predicted churn probability and displays the corresponding terminal node and decision path.</p>
-<p><img src="images/clipboard-738519810.png" class="img-fluid"></p>
+<p>Allows users to test a custom scenario by entering values for the variables used in the current model. The app then generates the predicted churn probability and displays the corresponding terminal node and decision path.</p>
+<ul>
+<li><p>Decision Tree</p>
+<p><img src="images/clipboard-1320270275.png" class="img-fluid"></p></li>
+<li><p>Random Forest</p>
+<p><img src="images/clipboard-1684858275.png" class="img-fluid"></p></li>
+</ul>
 
 
 </section>
